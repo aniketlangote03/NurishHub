@@ -4,15 +4,7 @@
  */
 
 const mongoose = require('mongoose');
-
-function isPlaceholderMongoUri(uri) {
-  if (!uri || typeof uri !== 'string' || !uri.trim()) return true;
-  const markers = ['<username>', '<password>', '<cluster>', '<dbname>'];
-  return markers.some((m) => uri.includes(m));
-}
-
-const isProductionLike =
-  process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
+const { isProductionLike, isPlaceholderMongoUri } = require('./envShared');
 
 /**
  * Connect to MongoDB
@@ -23,10 +15,9 @@ const connectDB = async () => {
     let uri = process.env.MONGO_URI;
 
     if (isPlaceholderMongoUri(uri)) {
-      if (isProductionLike) {
+      if (isProductionLike()) {
         console.error(
-          '❌ MONGO_URI is missing or still a placeholder (e.g. <username> in .env.example). ' +
-            'In Render → Environment, set MONGO_URI to your real MongoDB Atlas connection string, then redeploy.'
+          '❌ MONGO_URI is missing or still a placeholder. (Startup validation should have caught this.)'
         );
         process.exit(1);
       }
@@ -51,14 +42,12 @@ const connectDB = async () => {
     }
 
     const conn = await mongoose.connect(uri, {
-      // These options are supported in newer Mongoose versions
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
 
-    // Handle connection events
     mongoose.connection.on('disconnected', () => {
       console.warn('⚠️  MongoDB disconnected. Attempting to reconnect...');
     });
@@ -70,10 +59,9 @@ const connectDB = async () => {
     mongoose.connection.on('error', (err) => {
       console.error(`❌ MongoDB connection error: ${err.message}`);
     });
-
   } catch (error) {
     console.error(`❌ MongoDB connection failed: ${error.message}`);
-    process.exit(1); // Exit process with failure
+    process.exit(1);
   }
 };
 

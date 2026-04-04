@@ -1,16 +1,19 @@
 # Render Blueprint — backend API (monorepo: service root is /backend)
 # Docs: https://render.com/docs/blueprint-spec
 #
-# Manual Web Service (if not using Blueprint):
-#   Root Directory = backend
-#   Build Command   = npm install   (not "yarn" at repo root)
-#   Start Command   = npm start
+# Manual Web Service:
+#   Root Directory = backend | Build = npm install | Start = npm start
 #
-# First deploy: Dashboard → New → Blueprint → connect this repo.
+# Required env vars (Dashboard → Environment). Without these the app exits with a checklist:
+#   MONGO_URI            — MongoDB Atlas connection string; Atlas Network Access allow 0.0.0.0/0 (or Render IPs)
+#   JWT_SECRET           — 32+ random chars (Blueprint can generate)
+#   JWT_REFRESH_SECRET   — 32+ random chars (different from JWT_SECRET)
+#   CLIENT_URL           — https://your-app.netlify.app (CORS + emails)
+#   SOCKET_CORS_ORIGIN   — same as CLIENT_URL (Socket.io)
 #
-# After deploy, set secret env vars in the Render dashboard (or link to a secret file).
-# Point Netlify VITE_API_URL to: https://<this-service>.onrender.com/api
-# Point VITE_SOCKET_URL to: https://<this-service>.onrender.com
+# Netlify (redeploy after change):
+#   VITE_API_URL         — https://<service>.onrender.com/api
+#   VITE_SOCKET_URL      — https://<service>.onrender.com
 
 services:
   - type: web

@@ -10,6 +10,7 @@
  */
 
 require('dotenv').config();
+require('./config/validateEnv').assertProductionEnv();
 
 const express   = require('express');
 const http      = require('http');
