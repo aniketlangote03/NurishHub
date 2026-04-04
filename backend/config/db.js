@@ -5,6 +5,15 @@
 
 const mongoose = require('mongoose');
 
+function isPlaceholderMongoUri(uri) {
+  if (!uri || typeof uri !== 'string' || !uri.trim()) return true;
+  const markers = ['<username>', '<password>', '<cluster>', '<dbname>'];
+  return markers.some((m) => uri.includes(m));
+}
+
+const isProductionLike =
+  process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER);
+
 /**
  * Connect to MongoDB
  * @returns {Promise<void>}
@@ -13,11 +22,32 @@ const connectDB = async () => {
   try {
     let uri = process.env.MONGO_URI;
 
-    if (!uri || uri.includes('<username>')) {
-      console.warn('⚠️  Placeholder MongoDB URI detected! Starting an In-Memory Database instead.');
-      const { MongoMemoryServer } = require('mongodb-memory-server');
-      const mongoServer = await MongoMemoryServer.create();
-      uri = mongoServer.getUri();
+    if (isPlaceholderMongoUri(uri)) {
+      if (isProductionLike) {
+        console.error(
+          '❌ MONGO_URI is missing or still a placeholder (e.g. <username> in .env.example). ' +
+            'In Render → Environment, set MONGO_URI to your real MongoDB Atlas connection string, then redeploy.'
+        );
+        process.exit(1);
+      }
+
+      console.warn(
+        '⚠️  No real MONGO_URI — using in-memory MongoDB for local dev (data is lost on exit).'
+      );
+      try {
+        const { MongoMemoryServer } = require('mongodb-memory-server');
+        const mongoServer = await MongoMemoryServer.create();
+        uri = mongoServer.getUri();
+      } catch (err) {
+        if (err.code === 'MODULE_NOT_FOUND') {
+          console.error(
+            '❌ Install dev helper: npm install mongodb-memory-server --save-dev\n' +
+              '   Or set MONGO_URI in backend/.env to your Atlas URI.'
+          );
+          process.exit(1);
+        }
+        throw err;
+      }
     }
 
     const conn = await mongoose.connect(uri, {
