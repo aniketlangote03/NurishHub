@@ -10,7 +10,9 @@
  */
 
 require('dotenv').config();
-require('./config/validateEnv').assertProductionEnv();
+const { assertProductionEnv, bootstrapJwtSecretsIfNeeded } = require('./config/validateEnv');
+assertProductionEnv();
+bootstrapJwtSecretsIfNeeded();
 
 const express   = require('express');
 const http      = require('http');
@@ -27,6 +29,7 @@ const logger              = require('./config/logger');
 const { initSockets }     = require('./sockets/index');
 const initCronJobs        = require('./config/cron');
 const { setupSwagger }    = require('./config/swagger');
+const { createDynamicOrigin } = require('./config/corsOrigins');
 
 // ── Rate Limiters ──────────────────────────────────────────────────────────
 const { globalLimiter, authLimiter, messageLimiter } = require('./middleware/rateLimiter');
@@ -62,9 +65,10 @@ if (process.env.RENDER || process.env.TRUST_PROXY === '1') {
 }
 
 // ── Socket.io ───────────────────────────────────────────────────────────────
+const dynamicOrigin = createDynamicOrigin();
 const io = new Server(httpServer, {
   cors: {
-    origin     : process.env.SOCKET_CORS_ORIGIN || 'http://localhost:5173',
+    origin     : dynamicOrigin,
     methods    : ['GET', 'POST'],
     credentials: true,
   },
@@ -87,7 +91,7 @@ app.use(
 
 app.use(
   cors({
-    origin     : process.env.CLIENT_URL || 'http://localhost:5173',
+    origin     : dynamicOrigin,
     credentials: true,
     methods    : ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

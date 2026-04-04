@@ -22,18 +22,23 @@ export function ChatProvider({ children }) {
       if (user?.role === 'admin') {
         const res = await adminAPI.getUsers({ limit: 100 });
         if (res.success) {
-          setContacts(res.data.users.map(u => ({
-            _id: u._id,
-            name: u.name,
-            role: u.role,
-            status: u.isActive ? 'active' : 'inactive',
-          })));
+          const uid = user?._id != null ? String(user._id) : '';
+          setContacts(
+            res.data.users
+              .filter((u) => String(u._id) !== uid)
+              .map((u) => ({
+                _id: String(u._id),
+                name: u.name,
+                role: u.role,
+                status: u.isActive ? 'active' : 'inactive',
+              }))
+          );
         }
       } else {
         const res = await chatAPI.getContacts();
         if (res.success) {
           setContacts(res.data.conversations.map(c => ({
-            _id: c._id,
+            _id: String(c._id),
             name: c.user?.name,
             role: c.user?.role,
             status: c.user?.isActive ? 'active' : 'inactive',
@@ -84,10 +89,20 @@ export function ChatProvider({ children }) {
       // 2. API Call
       const res = await chatAPI.sendMessage(receiverId, text);
       if (res.success) {
-        // Replace temp ID with real DB ID
-        setMessages(prev => ({
+        const saved = res.data.message;
+        const normalized = saved
+          ? {
+              ...saved,
+              _id: saved._id,
+              senderId: saved.senderId?._id != null ? String(saved.senderId._id) : String(saved.senderId),
+              receiverId: saved.receiverId?._id != null ? String(saved.receiverId._id) : String(saved.receiverId),
+            }
+          : null;
+        setMessages((prev) => ({
           ...prev,
-          [receiverId]: prev[receiverId].map(m => m._id === tempId ? res.data.message : m)
+          [receiverId]: prev[receiverId].map((m) =>
+            m._id === tempId && normalized ? normalized : m
+          ),
         }));
       }
     } catch (err) {
@@ -112,15 +127,23 @@ export function ChatProvider({ children }) {
   useEffect(() => {
     if (!user) return;
 
-    const handleMessageReceived = (msg) => {
-      const contactId = msg.senderId === user._id ? msg.receiverId : msg.senderId;
-      setMessages(prev => ({
-        ...prev,
-        [contactId]: [...(prev[contactId] || []), msg]
-      }));
+    const handleMessageReceived = (raw) => {
+      const msg = {
+        ...raw,
+        _id: raw._id ?? raw.messageId,
+        senderId: raw.senderId != null ? String(raw.senderId) : raw.senderId,
+        receiverId: raw.receiverId != null ? String(raw.receiverId) : raw.receiverId,
+      };
+      const uid = String(user._id);
+      const sid = String(msg.senderId);
+      const contactId = sid === uid && msg.receiverId ? String(msg.receiverId) : sid;
 
-      // Optionally refresh contacts list to show latest message snippet
-      // fetchContacts(); 
+      setMessages((prev) => {
+        const list = prev[contactId] || [];
+        const mid = msg._id != null ? String(msg._id) : null;
+        if (mid && list.some((m) => String(m._id) === mid)) return prev;
+        return { ...prev, [contactId]: [...list, msg] };
+      });
     };
 
     const handleTyping = ({ senderId }) => {

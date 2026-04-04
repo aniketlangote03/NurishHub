@@ -12,12 +12,6 @@ function isPlaceholderMongoUri(uri) {
   return markers.some((m) => uri.includes(m));
 }
 
-function isLocalUrl(value) {
-  if (!value || typeof value !== 'string') return true;
-  const v = value.toLowerCase();
-  return v.includes('localhost') || v.includes('127.0.0.1');
-}
-
 function isWeakJwtSecret(secret) {
   if (!secret || typeof secret !== 'string' || secret.length < 32) return true;
   const s = secret.toLowerCase();
@@ -31,6 +25,5 @@ function isWeakJwtSecret(secret) {
 module.exports = {
   isProductionLike,
   isPlaceholderMongoUri,
-  isLocalUrl,
   isWeakJwtSecret,
 };

@@ -34,16 +34,20 @@ const sendMessage = asyncHandler(async (req, res) => {
     status: 'sent',
   });
 
-  // Real-time delivery via Socket.io
+  // Real-time delivery via Socket.io (payload matches client: _id, string ids)
   const io = req.app.get('io');
   if (io) {
-    const receiverSocketId = req.app.get('onlineUsers')?.[receiverId];
+    const online = req.app.get('onlineUsers') || {};
+    const receiverKey = String(receiverId);
+    const receiverSocketId = online[receiverKey];
     if (receiverSocketId) {
       io.to(receiverSocketId).emit('message:received', {
-        messageId: message._id,
-        senderId: req.user._id,
+        _id: message._id,
+        senderId: req.user._id.toString(),
+        receiverId: receiverKey,
         text,
         createdAt: message.createdAt,
+        status: 'delivered',
       });
       // Mark as delivered
       await Message.findByIdAndUpdate(message._id, {

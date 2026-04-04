@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const User = require('./models/User');
 const Donation = require('./models/Donation');
+const Request = require('./models/Request');
+const Pickup = require('./models/Pickup');
 
 // Load environment variables (never commit real .env)
 dotenv.config();
@@ -71,8 +73,10 @@ const seedDatabase = async () => {
     console.log('✅ Connected to MongoDB');
 
     console.log('Clearing old data...');
-    await User.deleteMany();
+    await Pickup.deleteMany();
+    await Request.deleteMany();
     await Donation.deleteMany();
+    await User.deleteMany();
     console.log('✅ Old data cleared');
 
     console.log('Seeding users...');
@@ -85,37 +89,89 @@ const seedDatabase = async () => {
     createdUsers.forEach((u) => console.log(`  - ${u.role}: ${u.email}`));
 
     const donor = createdUsers.find((u) => u.role === 'donor');
+    const ngo = createdUsers.find((u) => u.role === 'ngo');
 
-    console.log('Seeding donations...');
-    const donationsData = [
-      {
-        donorId: donor._id,
-        foodType: 'cooked_food',
-        foodName: 'Rice and Daal',
-        description: 'Prepared today, good for 10 people.',
-        quantity: { value: 10, unit: 'servings' },
-        servingSize: 10,
-        expiryTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        location: { type: 'Point', coordinates: [72.8777, 19.076] },
-        address: { city: 'Mumbai' },
-      },
-      {
-        donorId: donor._id,
-        foodType: 'raw_vegetables',
-        foodName: 'Fresh Tomatoes and Onions',
-        description: 'Fresh from the market',
-        quantity: { value: 5, unit: 'kg' },
-        servingSize: 20,
-        expiryTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-        location: { type: 'Point', coordinates: [72.8777, 19.076] },
-        address: { city: 'Mumbai' },
-      },
-    ];
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const inFiveDays = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
 
-    await Donation.insertMany(donationsData);
-    console.log('✅ Donations seeded successfully');
+    console.log('Seeding donations + demo NGO requests...');
 
-    console.log('\n🎉 ALL DONE! Log in with any seeded email and SEED_DEFAULT_PASSWORD from .env');
+    // Donation A — pending + PENDING request → approve as donor/admin on /requests
+    const donationA = await Donation.create({
+      donorId: donor._id,
+      foodType: 'cooked_food',
+      foodName: 'Rice and Daal (demo — approve me)',
+      description: 'Prepared today. NGO requested — log in as donor or admin → NGO Requests → Accept NGO.',
+      dietType: 'veg',
+      quantity: { value: 10, unit: 'servings' },
+      servingSize: 10,
+      expiryTime: tomorrow,
+      location: { type: 'Point', coordinates: [72.8777, 19.076] },
+      address: { street: '123 Main St', city: 'Mumbai', country: 'India' },
+      status: 'requested',
+      pickupContactPhone: donor.phone,
+    });
+
+    await Request.create({
+      ngoId: ngo._id,
+      donationId: donationA._id,
+      status: 'pending',
+      message: 'Demo request: we can collect today evening.',
+      urgencyLevel: 'high',
+      beneficiaryCount: 10,
+    });
+
+    // Donation B — already ACCEPTED by NGO → admin can assign volunteer immediately
+    const donationB = await Donation.create({
+      donorId: donor._id,
+      foodType: 'bakery',
+      foodName: 'Bread & pastries (demo — assign volunteer)',
+      description: 'Pre-approved for pickup demo. Log in as admin → Admin panel → assign Mike Volunteer.',
+      dietType: 'veg',
+      quantity: { value: 3, unit: 'boxes' },
+      servingSize: 15,
+      expiryTime: inFiveDays,
+      location: { type: 'Point', coordinates: [72.8777, 19.076] },
+      address: { street: '123 Main St', city: 'Mumbai', country: 'India' },
+      status: 'accepted',
+      allocatedTo: ngo._id,
+      pickupContactPhone: donor.phone,
+    });
+
+    await Request.create({
+      ngoId: ngo._id,
+      donationId: donationB._id,
+      status: 'approved',
+      message: 'Demo: pre-approved for admin → volunteer assignment flow.',
+      urgencyLevel: 'medium',
+      beneficiaryCount: 15,
+      approvedAt: new Date(),
+    });
+
+    // Extra open donation — NGO can click "Request food" from listing (optional manual test)
+    await Donation.create({
+      donorId: donor._id,
+      foodType: 'fruits',
+      foodName: 'Mixed fruits (demo — request from listing)',
+      description: 'Still pending — browse as NGO and tap Request food.',
+      dietType: 'veg',
+      quantity: { value: 8, unit: 'kg' },
+      servingSize: 25,
+      expiryTime: inFiveDays,
+      location: { type: 'Point', coordinates: [72.88, 19.08] },
+      address: { street: '123 Main St', city: 'Mumbai', country: 'India' },
+      status: 'pending',
+      pickupContactPhone: donor.phone,
+    });
+
+    console.log('✅ Donations + requests seeded');
+
+    console.log('\n── Demo flows (same password for all users: your SEED_DEFAULT_PASSWORD) ──');
+    console.log('1) Approve NGO:  donor@example.com OR admin@system.com  →  /requests  →  Accept NGO on "Rice and Daal"');
+    console.log('2) Assign pickup: admin@system.com  →  /admin  →  assign volunteer on "Bread & pastries"');
+    console.log('3) Volunteer:     volunteer@example.com  →  /pickups  →  advance delivery steps');
+    console.log('4) NGO request:   ngo@example.com  →  /donations  →  Request food on "Mixed fruits"');
+    console.log('\n🎉 ALL DONE!');
     process.exit();
   } catch (err) {
     console.error('❌ Seeding failed:', err);

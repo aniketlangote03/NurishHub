@@ -196,9 +196,14 @@ export default function Chat() {
             display: 'flex', flexDirection: 'column', gap: 'var(--space-3)',
           }}>
             {activeMessages.map((msg) => {
-              const isMine = msg.senderId === user?._id;
+              const rawSender = msg.senderId;
+              const senderIdStr =
+                rawSender && typeof rawSender === 'object' && rawSender._id != null
+                  ? String(rawSender._id)
+                  : String(rawSender ?? '');
+              const isMine = senderIdStr === String(user?._id ?? '');
               return (
-                <div key={msg._id} style={{
+                <div key={msg._id || msg.messageId || `msg-${msg.createdAt}`} style={{
                   display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start',
                   animation: 'fadeInUp 0.2s ease-out',
                 }}>
