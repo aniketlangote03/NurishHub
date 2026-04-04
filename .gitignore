@@ -29,3 +29,6 @@ dist/
 **/dist/
 *.log
 .DS_Store
+
+# Uploaded files (local only)
+backend/uploads/
