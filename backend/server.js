@@ -55,6 +55,11 @@ const { errorHandler, notFound } = require('./middleware/error');
 const app        = express();
 const httpServer = http.createServer(app);
 
+// Render / reverse proxies — correct req.ip for express-rate-limit
+if (process.env.RENDER || process.env.TRUST_PROXY === '1') {
+  app.set('trust proxy', 1);
+}
+
 // ── Socket.io ───────────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
   cors: {

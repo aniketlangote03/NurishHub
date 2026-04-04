@@ -1,0 +1,43 @@
+# Render Blueprint — backend API (monorepo: service root is /backend)
+# Docs: https://render.com/docs/blueprint-spec
+#
+# First deploy: Dashboard → New → Blueprint → connect this repo, or
+# add a Web Service manually with Root Directory = backend and the same build/start commands.
+#
+# After deploy, set secret env vars in the Render dashboard (or link to a secret file).
+# Point Netlify VITE_API_URL to: https://<this-service>.onrender.com/api
+# Point VITE_SOCKET_URL to: https://<this-service>.onrender.com
+
+services:
+  - type: web
+    name: nurishhub-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: CLIENT_URL
+        sync: false
+      - key: SOCKET_CORS_ORIGIN
+        sync: false
+      - key: SWAGGER_ENABLED
+        value: "false"
