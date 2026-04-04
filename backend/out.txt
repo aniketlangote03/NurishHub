@@ -1,0 +1,19 @@
+
+Oops! Something went wrong! :(
+
+ESLint: 8.57.1
+
+Error: ESLint configuration in .eslintrc.json » plugin:sonarjs/recommended is invalid:
+	- Unexpected top-level property "name".
+
+Referenced from: D:\ngo project\backend\.eslintrc.json
+    at ConfigValidator.validateConfigSchema (D:\ngo project\backend\node_modules\@eslint\eslintrc\dist\eslintrc.cjs:2177:19)
+    at ConfigArrayFactory._normalizeConfigData (D:\ngo project\backend\node_modules\@eslint\eslintrc\dist\eslintrc.cjs:3019:19)
+    at ConfigArrayFactory._loadExtendedPluginConfig (D:\ngo project\backend\node_modules\@eslint\eslintrc\dist\eslintrc.cjs:3239:25)
+    at ConfigArrayFactory._loadExtends (D:\ngo project\backend\node_modules\@eslint\eslintrc\dist\eslintrc.cjs:3154:29)
+    at ConfigArrayFactory._normalizeObjectConfigDataBody (D:\ngo project\backend\node_modules\@eslint\eslintrc\dist\eslintrc.cjs:3095:25)
+    at _normalizeObjectConfigDataBody.next (<anonymous>)
+    at ConfigArrayFactory._normalizeObjectConfigData (D:\ngo project\backend\node_modules\@eslint\eslintrc\dist\eslintrc.cjs:3040:20)
+    at _normalizeObjectConfigData.next (<anonymous>)
+    at ConfigArrayFactory.loadInDirectory (D:\ngo project\backend\node_modules\@eslint\eslintrc\dist\eslintrc.cjs:2886:28)
+    at CascadingConfigArrayFactory._loadConfigInAncestors (D:\ngo project\backend\node_modules\@eslint\eslintrc\dist\eslintrc.cjs:3871:46)

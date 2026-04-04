@@ -1,0 +1,31 @@
+# ── Secrets & local env (never commit) ───────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+backend/.env
+frontend/.env
+
+# Other env variants (keep *.example tracked)
+.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Keys & credentials
+*.pem
+*.p12
+id_rsa
+id_rsa.pub
+
+# Nested git repo / local tooling (not this project)
+ngo/
+
+# Dependencies & build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+*.log
+.DS_Store
