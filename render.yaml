@@ -1,8 +1,12 @@
 # Render Blueprint — backend API (monorepo: service root is /backend)
 # Docs: https://render.com/docs/blueprint-spec
 #
-# First deploy: Dashboard → New → Blueprint → connect this repo, or
-# add a Web Service manually with Root Directory = backend and the same build/start commands.
+# Manual Web Service (if not using Blueprint):
+#   Root Directory = backend
+#   Build Command   = npm install   (not "yarn" at repo root)
+#   Start Command   = npm start
+#
+# First deploy: Dashboard → New → Blueprint → connect this repo.
 #
 # After deploy, set secret env vars in the Render dashboard (or link to a secret file).
 # Point Netlify VITE_API_URL to: https://<this-service>.onrender.com/api
