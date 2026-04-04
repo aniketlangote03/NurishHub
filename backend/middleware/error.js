@@ -88,8 +88,9 @@ const errorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  // Log all errors
-  logger.error({
+  // Log all errors (log 404s as warn to reduce production log noise)
+  const logMethod = err.statusCode === 404 ? 'warn' : 'error';
+  logger[logMethod]({
     message: err.message,
     stack: err.stack,
     url: req.originalUrl,
