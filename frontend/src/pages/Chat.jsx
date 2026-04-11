@@ -4,15 +4,15 @@ import { useChat } from '../hooks/useChat';
 import { PageLoader } from '../components/ui/Spinner';
 import {
   Send, Search, Smile, Paperclip, MoreVertical,
-  Phone, Video, ArrowLeft,
+  Phone, Video, ArrowLeft, MessageSquare,
 } from 'lucide-react';
 import { formatTime, getInitials } from '../utils/helpers';
 
 export default function Chat() {
   const { user } = useAuth();
-  const { 
-    contacts, messages, activeContact, setActiveContact, 
-    fetchContacts, fetchMessages, sendMessage, typingStatus, notifyTyping 
+  const {
+    contacts, messages, activeContact, setActiveContact,
+    fetchContacts, fetchMessages, sendMessage, typingStatus, notifyTyping
   } = useChat();
 
   const [newMsg, setNewMsg] = useState('');
@@ -64,253 +64,426 @@ export default function Chat() {
   if (loading) return <PageLoader />;
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '320px 1fr',
-      gap: 0, height: 'calc(100vh - var(--navbar-height) - 3rem)',
-      borderRadius: 'var(--radius-xl)', overflow: 'hidden',
-      border: '1px solid var(--border-color)',
-      background: 'var(--bg-secondary)',
-    }} className="chat-grid">
-      {/* Contact List */}
-      <div style={{
-        borderRight: '1px solid var(--border-color)',
-        display: 'flex', flexDirection: 'column',
-      }} className="chat-contacts">
-        <div style={{
-          padding: 'var(--space-4) var(--space-4) var(--space-3)',
-          borderBottom: '1px solid var(--border-color)',
-        }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 'var(--space-3)' }}>Messages</h3>
-          <div style={{ position: 'relative' }}>
-            <Search size={15} style={{
-              position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)',
-              color: 'var(--text-tertiary)',
-            }} />
-            <input
-              type="text" placeholder="Search contacts..."
-              value={search} onChange={e => setSearch(e.target.value)}
-              style={{
-                width: '100%', padding: '0.5rem 0.75rem 0.5rem 2rem',
-                background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)', color: 'var(--text-primary)',
-                fontSize: '0.8rem', outline: 'none',
-              }}
-            />
-          </div>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {filteredContacts.map(c => {
-            const active = activeContact?._id === c._id;
-            return (
-              <div key={c._id} onClick={() => setActiveContact(c)} style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
-                padding: 'var(--space-3) var(--space-4)', cursor: 'pointer',
-                background: active ? 'rgba(16, 185, 129, 0.08)' : 'transparent',
-                borderLeft: active ? '3px solid var(--primary-500)' : '3px solid transparent',
-                transition: 'all var(--transition-fast)',
-              }}
-              onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
-              >
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    width: '40px', height: '40px', borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--primary-600), var(--primary-800))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#fff', fontSize: '0.75rem', fontWeight: 700,
-                  }}>
-                    {getInitials(c.name || 'User')}
-                  </div>
-                  <div style={{
-                    position: 'absolute', bottom: '0', right: '0',
-                    width: '10px', height: '10px', borderRadius: '50%',
-                    background: c.status === 'active' ? 'var(--success)' : 'var(--slate-500)',
-                    border: '2px solid var(--bg-secondary)',
-                  }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.name}</p>
-                  <p style={{
-                    fontSize: '0.75rem', color: 'var(--text-tertiary)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    textTransform: 'capitalize',
-                  }}>
-                    {c.role}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Chat Area */}
-      {activeContact ? (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Chat header */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: 'var(--space-3) var(--space-5)',
-            borderBottom: '1px solid var(--border-color)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-              <button className="chat-back-btn" style={{ display: 'none', color: 'var(--text-secondary)' }}
-                onClick={() => setActiveContact(null)}>
-                <ArrowLeft size={20} />
-              </button>
-              <div style={{
-                width: '36px', height: '36px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--primary-600), var(--primary-800))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontSize: '0.7rem', fontWeight: 700,
-              }}>
-                {getInitials(activeContact.name || 'User')}
-              </div>
-              <div>
-                <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{activeContact.name}</p>
-                <p style={{ fontSize: '0.7rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <span className="status-dot online" /> Online
-                </p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-              {[Phone, Video, MoreVertical].map((Icon, i) => (
-                <button key={i} style={{
-                  width: '32px', height: '32px', borderRadius: 'var(--radius-md)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-secondary)', transition: 'all var(--transition-fast)',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                >
-                  <Icon size={16} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div style={{
-            flex: 1, overflowY: 'auto', padding: 'var(--space-5)',
-            display: 'flex', flexDirection: 'column', gap: 'var(--space-3)',
-          }}>
-            {activeMessages.map((msg) => {
-              const rawSender = msg.senderId;
-              const senderIdStr =
-                rawSender && typeof rawSender === 'object' && rawSender._id != null
-                  ? String(rawSender._id)
-                  : String(rawSender ?? '');
-              const isMine = senderIdStr === String(user?._id ?? '');
-              return (
-                <div key={msg._id || msg.messageId || `msg-${msg.createdAt}`} style={{
-                  display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start',
-                  animation: 'fadeInUp 0.2s ease-out',
-                }}>
-                  <div style={{
-                    maxWidth: '70%', padding: 'var(--space-3) var(--space-4)',
-                    borderRadius: isMine
-                      ? 'var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg)'
-                      : 'var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-sm)',
-                    background: isMine
-                      ? 'linear-gradient(135deg, var(--primary-600), var(--primary-500))'
-                      : 'var(--bg-tertiary)',
-                    color: isMine ? '#fff' : 'var(--text-primary)',
-                  }}>
-                    <p style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>{msg.text}</p>
-                    <p style={{
-                      fontSize: '0.65rem', marginTop: 'var(--space-1)',
-                      opacity: 0.7, textAlign: 'right',
-                    }}>
-                      {formatTime(msg.createdAt || msg.timestamp)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Typing indicator */}
-            {typingStatus[activeContact._id] && (
-              <div style={{
-                display: 'flex', justifyContent: 'flex-start',
-                animation: 'fadeIn 0.3s ease-out',
-              }}>
-                <div style={{
-                  padding: 'var(--space-3) var(--space-4)',
-                  borderRadius: 'var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-sm)',
-                  background: 'var(--bg-tertiary)',
-                  display: 'flex', gap: '4px', alignItems: 'center',
-                }}>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} style={{
-                      width: '6px', height: '6px', borderRadius: '50%',
-                      background: 'var(--text-tertiary)',
-                      animation: `typing 1.4s infinite ${i * 0.2}s`,
-                    }} />
-                  ))}
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <div style={{
-            padding: 'var(--space-3) var(--space-4)',
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
-          }}>
-            <button style={{ color: 'var(--text-tertiary)', display: 'flex' }}>
-              <Paperclip size={18} />
-            </button>
-            <input
-              type="text" placeholder="Type a message..."
-              value={newMsg} onChange={handleChange}
-              onKeyDown={handleKeyPress}
-              style={{
-                flex: 1, padding: '0.6rem 0.9rem',
-                background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-full)', color: 'var(--text-primary)',
-                fontSize: '0.875rem', outline: 'none',
-                transition: 'border-color var(--transition-fast)',
-              }}
-              onFocus={e => e.currentTarget.style.borderColor = 'var(--primary-500)'}
-              onBlur={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
-            />
-            <button style={{ color: 'var(--text-tertiary)', display: 'flex' }}>
-              <Smile size={18} />
-            </button>
-            <button onClick={handleSend} style={{
-              width: '36px', height: '36px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--primary-600), var(--primary-500))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', transition: 'transform var(--transition-fast)',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <Send size={16} />
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 'var(--space-4)', color: 'var(--text-tertiary)',
-        }}>
-          <Send size={48} style={{ opacity: 0.2 }} />
-          <p>Select a conversation to start chatting</p>
-        </div>
-      )}
-
+    <>
       <style>{`
+        .chat-page-wrapper {
+          display: flex;
+          flex-direction: column;
+          padding: 1.5rem;
+          height: calc(100vh - 64px - 3rem);
+          min-height: 500px;
+          box-sizing: border-box;
+        }
+        .chat-grid {
+          display: grid;
+          grid-template-columns: 300px 1fr;
+          flex: 1;
+          overflow: hidden;
+          border-radius: 1rem;
+          border: 1px solid hsl(var(--border));
+          background: hsl(var(--card));
+          box-shadow: 0 2px 8px hsl(var(--primary) / 0.05);
+          min-height: 0;
+        }
+        .chat-sidebar {
+          border-right: 1px solid hsl(var(--border));
+          display: flex;
+          flex-direction: column;
+          background: hsl(var(--card));
+          overflow: hidden;
+        }
+        .chat-sidebar-header {
+          padding: 1rem 1rem 0.75rem;
+          border-bottom: 1px solid hsl(var(--border));
+          flex-shrink: 0;
+        }
+        .chat-search-input {
+          width: 100%;
+          padding: 0.45rem 0.75rem 0.45rem 2rem;
+          background: hsl(var(--muted));
+          border: 1px solid hsl(var(--border));
+          border-radius: 0.5rem;
+          color: hsl(var(--foreground));
+          font-size: 0.8rem;
+          outline: none;
+          font-family: inherit;
+          transition: border-color 0.2s;
+        }
+        .chat-search-input:focus {
+          border-color: hsl(var(--primary));
+        }
+        .chat-contacts-list {
+          flex: 1;
+          overflow-y: auto;
+        }
+        .chat-contact-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem 1rem;
+          cursor: pointer;
+          transition: background 0.15s;
+          border-left: 3px solid transparent;
+        }
+        .chat-contact-item:hover {
+          background: hsl(var(--muted));
+        }
+        .chat-contact-item.active {
+          background: hsl(var(--primary) / 0.08);
+          border-left-color: hsl(var(--primary));
+        }
+        .chat-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: hsl(var(--primary));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: hsl(var(--primary-fg));
+          font-size: 0.75rem;
+          font-weight: 700;
+          flex-shrink: 0;
+          position: relative;
+        }
+        .chat-avatar-sm {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: hsl(var(--primary));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: hsl(var(--primary-fg));
+          font-size: 0.7rem;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+        .status-dot {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          border: 2px solid hsl(var(--card));
+        }
+        .status-dot.online { background: #22c55e; }
+        .status-dot.offline { background: #94a3b8; }
+        .chat-panel {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          background: hsl(var(--background));
+          overflow: hidden;
+        }
+        .chat-panel-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 1.25rem;
+          border-bottom: 1px solid hsl(var(--border));
+          flex-shrink: 0;
+          background: hsl(var(--card));
+        }
+        .chat-messages-area {
+          flex: 1;
+          overflow-y: auto;
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .chat-input-bar {
+          padding: 0.75rem 1rem;
+          border-top: 1px solid hsl(var(--border));
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex-shrink: 0;
+          background: hsl(var(--card));
+        }
+        .chat-input {
+          flex: 1;
+          padding: 0.55rem 0.9rem;
+          background: hsl(var(--muted));
+          border: 1.5px solid hsl(var(--border));
+          border-radius: 9999px;
+          color: hsl(var(--foreground));
+          font-size: 0.875rem;
+          outline: none;
+          font-family: inherit;
+          transition: border-color 0.2s;
+        }
+        .chat-input:focus {
+          border-color: hsl(var(--primary));
+        }
+        .chat-send-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: hsl(var(--primary));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: hsl(var(--primary-fg));
+          cursor: pointer;
+          transition: transform 0.15s, opacity 0.15s;
+          flex-shrink: 0;
+          border: none;
+          box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
+        }
+        .chat-send-btn:hover { transform: scale(1.07); }
+        .chat-send-btn:active { transform: scale(0.95); }
+        .chat-icon-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 0.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: hsl(var(--muted-fg));
+          border: none;
+          background: none;
+          cursor: pointer;
+          transition: background 0.15s, color 0.15s;
+        }
+        .chat-icon-btn:hover {
+          background: hsl(var(--muted));
+          color: hsl(var(--foreground));
+        }
+        .msg-bubble {
+          max-width: 70%;
+          padding: 0.625rem 0.875rem;
+          animation: fadeInUp 0.2s ease-out;
+        }
+        .msg-bubble.mine {
+          border-radius: 1rem 1rem 0.25rem 1rem;
+          background: hsl(var(--primary));
+          color: hsl(var(--primary-fg));
+          align-self: flex-end;
+        }
+        .msg-bubble.theirs {
+          border-radius: 1rem 1rem 1rem 0.25rem;
+          background: hsl(var(--muted));
+          color: hsl(var(--foreground));
+          align-self: flex-start;
+        }
+        .msg-time {
+          font-size: 0.65rem;
+          opacity: 0.65;
+          text-align: right;
+          margin-top: 0.2rem;
+        }
+        .typing-bubble {
+          display: flex;
+          gap: 4px;
+          align-items: center;
+          padding: 0.625rem 0.875rem;
+          border-radius: 1rem 1rem 1rem 0.25rem;
+          background: hsl(var(--muted));
+          align-self: flex-start;
+          animation: fadeIn 0.3s ease-out;
+        }
+        .typing-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: hsl(var(--muted-fg));
+        }
+        @keyframes typing {
+          0%, 100% { opacity: 0.3; transform: translateY(0); }
+          50% { opacity: 1; transform: translateY(-4px); }
+        }
+        .typing-dot:nth-child(1) { animation: typing 1.4s infinite 0s; }
+        .typing-dot:nth-child(2) { animation: typing 1.4s infinite 0.2s; }
+        .typing-dot:nth-child(3) { animation: typing 1.4s infinite 0.4s; }
+        .chat-empty {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 1rem;
+          color: hsl(var(--muted-fg));
+          height: 100%;
+        }
         @media (max-width: 768px) {
+          .chat-page-wrapper { padding: 0; height: calc(100vh - 64px); }
+          .chat-grid { border-radius: 0; border-left: none; border-right: none; }
+          .chat-sidebar { display: ${activeContact ? 'none' : 'flex'} !important; }
           .chat-grid { grid-template-columns: 1fr !important; }
-          .chat-contacts { display: ${activeContact ? 'none' : 'flex'} !important; }
           .chat-back-btn { display: flex !important; }
         }
       `}</style>
-    </div>
+
+      <div className="chat-page-wrapper">
+        <div className="chat-grid">
+          {/* ── Sidebar: Contacts ── */}
+          <div className="chat-sidebar">
+            <div className="chat-sidebar-header">
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.65rem', color: 'hsl(var(--foreground))' }}>
+                Messages
+              </h3>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{
+                  position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)',
+                  color: 'hsl(var(--muted-fg))',
+                }} />
+                <input
+                  type="text"
+                  placeholder="Search contacts..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="chat-search-input"
+                />
+              </div>
+            </div>
+
+            <div className="chat-contacts-list">
+              {filteredContacts.length === 0 ? (
+                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'hsl(var(--muted-fg))', fontSize: '0.85rem' }}>
+                  No contacts found
+                </div>
+              ) : (
+                filteredContacts.map(c => (
+                  <div
+                    key={c._id}
+                    className={`chat-contact-item ${activeContact?._id === c._id ? 'active' : ''}`}
+                    onClick={() => setActiveContact(c)}
+                  >
+                    <div className="chat-avatar">
+                      {getInitials(c.name || 'User')}
+                      <span className={`status-dot ${c.status === 'active' ? 'online' : 'offline'}`} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'hsl(var(--foreground))' }}>{c.name}</p>
+                      <p style={{
+                        fontSize: '0.75rem', color: 'hsl(var(--muted-fg))',
+                        textTransform: 'capitalize',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {c.role}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* ── Chat Panel ── */}
+          {activeContact ? (
+            <div className="chat-panel">
+              {/* Header */}
+              <div className="chat-panel-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <button
+                    className="chat-back-btn chat-icon-btn"
+                    style={{ display: 'none' }}
+                    onClick={() => setActiveContact(null)}
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                  <div className="chat-avatar-sm">{getInitials(activeContact.name || 'User')}</div>
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'hsl(var(--foreground))' }}>
+                      {activeContact.name}
+                    </p>
+                    <p style={{ fontSize: '0.7rem', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                      Online
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  {[Phone, Video, MoreVertical].map((Icon, i) => (
+                    <button key={i} className="chat-icon-btn">
+                      <Icon size={16} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="chat-messages-area">
+                {activeMessages.length === 0 ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.5rem', color: 'hsl(var(--muted-fg))' }}>
+                    <MessageSquare size={32} style={{ opacity: 0.3 }} />
+                    <p style={{ fontSize: '0.85rem' }}>No messages yet. Say hi!</p>
+                  </div>
+                ) : (
+                  activeMessages.map((msg) => {
+                    const rawSender = msg.senderId;
+                    const senderIdStr =
+                      rawSender && typeof rawSender === 'object' && rawSender._id != null
+                        ? String(rawSender._id)
+                        : String(rawSender ?? '');
+                    const isMine = senderIdStr === String(user?._id ?? '');
+                    return (
+                      <div
+                        key={msg._id || msg.messageId || `msg-${msg.createdAt}`}
+                        className={`msg-bubble ${isMine ? 'mine' : 'theirs'}`}
+                      >
+                        <p style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>{msg.text}</p>
+                        <p className="msg-time">
+                          {formatTime(msg.createdAt || msg.timestamp)}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+
+                {/* Typing indicator */}
+                {typingStatus[activeContact._id] && (
+                  <div className="typing-bubble">
+                    <div className="typing-dot" />
+                    <div className="typing-dot" />
+                    <div className="typing-dot" />
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input Bar */}
+              <div className="chat-input-bar">
+                <button className="chat-icon-btn" style={{ color: 'hsl(var(--muted-fg))' }}>
+                  <Paperclip size={18} />
+                </button>
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={newMsg}
+                  onChange={handleChange}
+                  onKeyDown={handleKeyPress}
+                  className="chat-input"
+                />
+                <button className="chat-icon-btn" style={{ color: 'hsl(var(--muted-fg))' }}>
+                  <Smile size={18} />
+                </button>
+                <button onClick={handleSend} className="chat-send-btn" disabled={!newMsg.trim()}>
+                  <Send size={16} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="chat-empty">
+              <div style={{
+                width: 64, height: 64, borderRadius: '50%',
+                background: 'hsl(var(--muted))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <MessageSquare size={28} style={{ opacity: 0.4, color: 'hsl(var(--primary))' }} />
+              </div>
+              <p style={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
+                Your Messages
+              </p>
+              <p style={{ fontSize: '0.85rem', textAlign: 'center', maxWidth: 220 }}>
+                Select a conversation from the left to start chatting
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
