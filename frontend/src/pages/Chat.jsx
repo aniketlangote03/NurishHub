@@ -1,489 +1,235 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, MessageCircle, Users, Utensils, Building2, Truck, Hash } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useChat } from '../hooks/useChat';
-import { PageLoader } from '../components/ui/Spinner';
-import {
-  Send, Search, Smile, Paperclip, MoreVertical,
-  Phone, Video, ArrowLeft, MessageSquare,
-} from 'lucide-react';
-import { formatTime, getInitials } from '../utils/helpers';
+
+const ROOMS = [
+  { id: 'general',    label: 'General',    icon: Hash,        color: '#10b981' },
+  { id: 'donors',     label: 'Donors',     icon: Utensils,    color: '#f59e0b' },
+  { id: 'volunteers', label: 'Volunteers', icon: Truck,       color: '#8b5cf6' },
+  { id: 'ngos',       label: 'NGOs',       icon: Building2,   color: '#3b82f6' },
+];
+
+const ROLE_COLORS = {
+  admin:     '#ef4444',
+  donor:     '#10b981',
+  volunteer: '#8b5cf6',
+  ngo:       '#3b82f6',
+  system:    '#6b7280',
+  user:      '#6b7280',
+};
+
+const SAMPLE_MSGS = {
+  general:    [
+    { id: 'g1', sender: 'Priya Sharma',  role: 'volunteer', text: 'Ready for pickups in Andheri today! 🚴', time: '10:15 AM' },
+    { id: 'g2', sender: 'Food For All',  role: 'ngo',       text: 'We need 30+ servings by 1 PM please 🙏', time: '10:18 AM' },
+    { id: 'g3', sender: 'Amit Bakery',   role: 'donor',     text: 'Fresh bread available now — 25 kg!', time: '10:20 AM' },
+  ],
+  donors:     [
+    { id: 'd1', sender: 'Hotel Residency', role: 'donor', text: 'Posted: 40 servings of rice & dal 🍽️', time: '9:30 AM' },
+    { id: 'd2', sender: 'Spice Garden',    role: 'donor', text: 'Vegetable curry expiring at 3 PM — urgent!', time: '9:45 AM' },
+  ],
+  volunteers: [
+    { id: 'v1', sender: 'Rohan Mehta', role: 'volunteer', text: 'En route to Bandra pickup now 🛵', time: '11:00 AM' },
+    { id: 'v2', sender: 'Kavya Nair',  role: 'volunteer', text: 'Completed delivery #47 ✅', time: '11:20 AM' },
+  ],
+  ngos: [
+    { id: 'n1', sender: 'Hope Foundation', role: 'ngo', text: 'Received 25 kg bread — thank you all! ❤️', time: '12:00 PM' },
+    { id: 'n2', sender: 'Nourish India',   role: 'ngo', text: 'Can we get a pickup from Dadar tomorrow morning?', time: '12:15 PM' },
+  ],
+};
 
 export default function Chat() {
   const { user } = useAuth();
-  const {
-    contacts, messages, activeContact, setActiveContact,
-    fetchContacts, fetchMessages, sendMessage, typingStatus, notifyTyping
-  } = useChat();
+  const { activeRoom, setActiveRoom } = useChat();
+  const [input, setInput] = useState('');
+  const [roomMsgs, setRoomMsgs] = useState(SAMPLE_MSGS);
+  const bottomRef = useRef(null);
 
-  const [newMsg, setNewMsg] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const messagesEndRef = useRef(null);
+  const messages = roomMsgs[activeRoom] || [];
 
   useEffect(() => {
-    fetchContacts().finally(() => setLoading(false));
-  }, [fetchContacts]);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, activeRoom]);
 
-  useEffect(() => {
-    if (activeContact?._id) {
-      fetchMessages(activeContact._id);
-    }
-  }, [activeContact, fetchMessages]);
-
-  const activeMessages = activeContact ? (messages[activeContact._id] || []) : [];
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeMessages]);
-
-  const handleSend = async () => {
-    if (!newMsg.trim() || !activeContact) return;
-    await sendMessage(activeContact._id, newMsg.trim());
-    setNewMsg('');
-    notifyTyping(activeContact._id, false);
+  const send = () => {
+    if (!input.trim()) return;
+    const msg = {
+      id: Date.now(),
+      sender: user?.name || 'You',
+      role: user?.role || 'user',
+      text: input.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isOwn: true,
+    };
+    setRoomMsgs(prev => ({ ...prev, [activeRoom]: [...(prev[activeRoom] || []), msg] }));
+    setInput('');
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleChange = (e) => {
-    setNewMsg(e.target.value);
-    if (activeContact) {
-      notifyTyping(activeContact._id, e.target.value.length > 0);
-    }
-  };
-
-  const filteredContacts = contacts.filter(c =>
-    c.name?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  if (loading) return <PageLoader />;
+  const currentRoom = ROOMS.find(r => r.id === activeRoom);
 
   return (
-    <>
-      <style>{`
-        .chat-page-wrapper {
-          display: flex;
-          flex-direction: column;
-          padding: 1.5rem;
-          height: calc(100vh - 64px - 3rem);
-          min-height: 500px;
-          box-sizing: border-box;
-        }
-        .chat-grid {
-          display: grid;
-          grid-template-columns: 300px 1fr;
-          flex: 1;
-          overflow: hidden;
-          border-radius: 1rem;
-          border: 1px solid hsl(var(--border));
-          background: hsl(var(--card));
-          box-shadow: 0 2px 8px hsl(var(--primary) / 0.05);
-          min-height: 0;
-        }
-        .chat-sidebar {
-          border-right: 1px solid hsl(var(--border));
-          display: flex;
-          flex-direction: column;
-          background: hsl(var(--card));
-          overflow: hidden;
-        }
-        .chat-sidebar-header {
-          padding: 1rem 1rem 0.75rem;
-          border-bottom: 1px solid hsl(var(--border));
-          flex-shrink: 0;
-        }
-        .chat-search-input {
-          width: 100%;
-          padding: 0.45rem 0.75rem 0.45rem 2rem;
-          background: hsl(var(--muted));
-          border: 1px solid hsl(var(--border));
-          border-radius: 0.5rem;
-          color: hsl(var(--foreground));
-          font-size: 0.8rem;
-          outline: none;
-          font-family: inherit;
-          transition: border-color 0.2s;
-        }
-        .chat-search-input:focus {
-          border-color: hsl(var(--primary));
-        }
-        .chat-contacts-list {
-          flex: 1;
-          overflow-y: auto;
-        }
-        .chat-contact-item {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem 1rem;
-          cursor: pointer;
-          transition: background 0.15s;
-          border-left: 3px solid transparent;
-        }
-        .chat-contact-item:hover {
-          background: hsl(var(--muted));
-        }
-        .chat-contact-item.active {
-          background: hsl(var(--primary) / 0.08);
-          border-left-color: hsl(var(--primary));
-        }
-        .chat-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: hsl(var(--primary));
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: hsl(var(--primary-fg));
-          font-size: 0.75rem;
-          font-weight: 700;
-          flex-shrink: 0;
-          position: relative;
-        }
-        .chat-avatar-sm {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background: hsl(var(--primary));
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: hsl(var(--primary-fg));
-          font-size: 0.7rem;
-          font-weight: 700;
-          flex-shrink: 0;
-        }
-        .status-dot {
-          position: absolute;
-          bottom: 0;
-          right: 0;
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          border: 2px solid hsl(var(--card));
-        }
-        .status-dot.online { background: #22c55e; }
-        .status-dot.offline { background: #94a3b8; }
-        .chat-panel {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          background: hsl(var(--background));
-          overflow: hidden;
-        }
-        .chat-panel-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0.75rem 1.25rem;
-          border-bottom: 1px solid hsl(var(--border));
-          flex-shrink: 0;
-          background: hsl(var(--card));
-        }
-        .chat-messages-area {
-          flex: 1;
-          overflow-y: auto;
-          padding: 1.25rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-        .chat-input-bar {
-          padding: 0.75rem 1rem;
-          border-top: 1px solid hsl(var(--border));
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          flex-shrink: 0;
-          background: hsl(var(--card));
-        }
-        .chat-input {
-          flex: 1;
-          padding: 0.55rem 0.9rem;
-          background: hsl(var(--muted));
-          border: 1.5px solid hsl(var(--border));
-          border-radius: 9999px;
-          color: hsl(var(--foreground));
-          font-size: 0.875rem;
-          outline: none;
-          font-family: inherit;
-          transition: border-color 0.2s;
-        }
-        .chat-input:focus {
-          border-color: hsl(var(--primary));
-        }
-        .chat-send-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background: hsl(var(--primary));
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: hsl(var(--primary-fg));
-          cursor: pointer;
-          transition: transform 0.15s, opacity 0.15s;
-          flex-shrink: 0;
-          border: none;
-          box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
-        }
-        .chat-send-btn:hover { transform: scale(1.07); }
-        .chat-send-btn:active { transform: scale(0.95); }
-        .chat-icon-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 0.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: hsl(var(--muted-fg));
-          border: none;
-          background: none;
-          cursor: pointer;
-          transition: background 0.15s, color 0.15s;
-        }
-        .chat-icon-btn:hover {
-          background: hsl(var(--muted));
-          color: hsl(var(--foreground));
-        }
-        .msg-bubble {
-          max-width: 70%;
-          padding: 0.625rem 0.875rem;
-          animation: fadeInUp 0.2s ease-out;
-        }
-        .msg-bubble.mine {
-          border-radius: 1rem 1rem 0.25rem 1rem;
-          background: hsl(var(--primary));
-          color: hsl(var(--primary-fg));
-          align-self: flex-end;
-        }
-        .msg-bubble.theirs {
-          border-radius: 1rem 1rem 1rem 0.25rem;
-          background: hsl(var(--muted));
-          color: hsl(var(--foreground));
-          align-self: flex-start;
-        }
-        .msg-time {
-          font-size: 0.65rem;
-          opacity: 0.65;
-          text-align: right;
-          margin-top: 0.2rem;
-        }
-        .typing-bubble {
-          display: flex;
-          gap: 4px;
-          align-items: center;
-          padding: 0.625rem 0.875rem;
-          border-radius: 1rem 1rem 1rem 0.25rem;
-          background: hsl(var(--muted));
-          align-self: flex-start;
-          animation: fadeIn 0.3s ease-out;
-        }
-        .typing-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: hsl(var(--muted-fg));
-        }
-        @keyframes typing {
-          0%, 100% { opacity: 0.3; transform: translateY(0); }
-          50% { opacity: 1; transform: translateY(-4px); }
-        }
-        .typing-dot:nth-child(1) { animation: typing 1.4s infinite 0s; }
-        .typing-dot:nth-child(2) { animation: typing 1.4s infinite 0.2s; }
-        .typing-dot:nth-child(3) { animation: typing 1.4s infinite 0.4s; }
-        .chat-empty {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          gap: 1rem;
-          color: hsl(var(--muted-fg));
-          height: 100%;
-        }
-        @media (max-width: 768px) {
-          .chat-page-wrapper { padding: 0; height: calc(100vh - 64px); }
-          .chat-grid { border-radius: 0; border-left: none; border-right: none; }
-          .chat-sidebar { display: ${activeContact ? 'none' : 'flex'} !important; }
-          .chat-grid { grid-template-columns: 1fr !important; }
-          .chat-back-btn { display: flex !important; }
-        }
-      `}</style>
+    <div style={{
+      height: 'calc(100vh - 64px)',
+      display: 'flex',
+      background: 'hsl(var(--background))',
+      fontFamily: 'var(--font-sans, Inter, sans-serif)',
+    }}>
 
-      <div className="chat-page-wrapper">
-        <div className="chat-grid">
-          {/* ── Sidebar: Contacts ── */}
-          <div className="chat-sidebar">
-            <div className="chat-sidebar-header">
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.65rem', color: 'hsl(var(--foreground))' }}>
-                Messages
-              </h3>
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{
-                  position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'hsl(var(--muted-fg))',
-                }} />
-                <input
-                  type="text"
-                  placeholder="Search contacts..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="chat-search-input"
-                />
-              </div>
+      {/* ── Sidebar ── */}
+      <div style={{
+        width: 220, flexShrink: 0,
+        borderRight: '1px solid hsl(var(--border, 220 13% 91%))',
+        background: 'hsl(var(--card, 0 0% 100%))',
+        display: 'flex', flexDirection: 'column', padding: '1.25rem 0.75rem', gap: 6,
+      }}>
+        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'hsl(var(--muted-fg, 220 9% 46%))', letterSpacing: '0.08em', padding: '0 0.5rem', marginBottom: 4, textTransform: 'uppercase' }}>
+          Channels
+        </p>
+        {ROOMS.map(room => (
+          <button key={room.id}
+            onClick={() => setActiveRoom(room.id)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '0.55rem 0.75rem', borderRadius: 10, border: 'none', cursor: 'pointer',
+              background: activeRoom === room.id ? room.color + '18' : 'transparent',
+              color: activeRoom === room.id ? room.color : 'hsl(var(--foreground, 224 71% 4%))',
+              fontWeight: activeRoom === room.id ? 700 : 500,
+              fontSize: '0.875rem', transition: 'all 0.15s', textAlign: 'left', width: '100%',
+            }}
+          >
+            <room.icon size={15} />
+            # {room.label}
+            {activeRoom === room.id && (
+              <span style={{ marginLeft: 'auto', width: 7, height: 7, borderRadius: '50%', background: room.color }} />
+            )}
+          </button>
+        ))}
+
+        {/* Online people */}
+        <div style={{ marginTop: 'auto', padding: '0.75rem 0.5rem', borderTop: '1px solid hsl(var(--border, 220 13% 91%))' }}>
+          <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'hsl(var(--muted-fg, 220 9% 46%))', letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase' }}>
+            Online — 6
+          </p>
+          {['Priya S.', 'Rohan M.', 'Food For All'].map(name => (
+            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.78rem', color: 'hsl(var(--foreground, 224 71% 4%))' }}>{name}</span>
             </div>
-
-            <div className="chat-contacts-list">
-              {filteredContacts.length === 0 ? (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'hsl(var(--muted-fg))', fontSize: '0.85rem' }}>
-                  No contacts found
-                </div>
-              ) : (
-                filteredContacts.map(c => (
-                  <div
-                    key={c._id}
-                    className={`chat-contact-item ${activeContact?._id === c._id ? 'active' : ''}`}
-                    onClick={() => setActiveContact(c)}
-                  >
-                    <div className="chat-avatar">
-                      {getInitials(c.name || 'User')}
-                      <span className={`status-dot ${c.status === 'active' ? 'online' : 'offline'}`} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'hsl(var(--foreground))' }}>{c.name}</p>
-                      <p style={{
-                        fontSize: '0.75rem', color: 'hsl(var(--muted-fg))',
-                        textTransform: 'capitalize',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {c.role}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* ── Chat Panel ── */}
-          {activeContact ? (
-            <div className="chat-panel">
-              {/* Header */}
-              <div className="chat-panel-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <button
-                    className="chat-back-btn chat-icon-btn"
-                    style={{ display: 'none' }}
-                    onClick={() => setActiveContact(null)}
-                  >
-                    <ArrowLeft size={20} />
-                  </button>
-                  <div className="chat-avatar-sm">{getInitials(activeContact.name || 'User')}</div>
-                  <div>
-                    <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'hsl(var(--foreground))' }}>
-                      {activeContact.name}
-                    </p>
-                    <p style={{ fontSize: '0.7rem', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                      Online
-                    </p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
-                  {[Phone, Video, MoreVertical].map((Icon, i) => (
-                    <button key={i} className="chat-icon-btn">
-                      <Icon size={16} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div className="chat-messages-area">
-                {activeMessages.length === 0 ? (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.5rem', color: 'hsl(var(--muted-fg))' }}>
-                    <MessageSquare size={32} style={{ opacity: 0.3 }} />
-                    <p style={{ fontSize: '0.85rem' }}>No messages yet. Say hi!</p>
-                  </div>
-                ) : (
-                  activeMessages.map((msg) => {
-                    const rawSender = msg.senderId;
-                    const senderIdStr =
-                      rawSender && typeof rawSender === 'object' && rawSender._id != null
-                        ? String(rawSender._id)
-                        : String(rawSender ?? '');
-                    const isMine = senderIdStr === String(user?._id ?? '');
-                    return (
-                      <div
-                        key={msg._id || msg.messageId || `msg-${msg.createdAt}`}
-                        className={`msg-bubble ${isMine ? 'mine' : 'theirs'}`}
-                      >
-                        <p style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>{msg.text}</p>
-                        <p className="msg-time">
-                          {formatTime(msg.createdAt || msg.timestamp)}
-                        </p>
-                      </div>
-                    );
-                  })
-                )}
-
-                {/* Typing indicator */}
-                {typingStatus[activeContact._id] && (
-                  <div className="typing-bubble">
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input Bar */}
-              <div className="chat-input-bar">
-                <button className="chat-icon-btn" style={{ color: 'hsl(var(--muted-fg))' }}>
-                  <Paperclip size={18} />
-                </button>
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  value={newMsg}
-                  onChange={handleChange}
-                  onKeyDown={handleKeyPress}
-                  className="chat-input"
-                />
-                <button className="chat-icon-btn" style={{ color: 'hsl(var(--muted-fg))' }}>
-                  <Smile size={18} />
-                </button>
-                <button onClick={handleSend} className="chat-send-btn" disabled={!newMsg.trim()}>
-                  <Send size={16} />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="chat-empty">
-              <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                background: 'hsl(var(--muted))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <MessageSquare size={28} style={{ opacity: 0.4, color: 'hsl(var(--primary))' }} />
-              </div>
-              <p style={{ fontWeight: 600, fontSize: '1rem', color: 'hsl(var(--foreground))' }}>
-                Your Messages
-              </p>
-              <p style={{ fontSize: '0.85rem', textAlign: 'center', maxWidth: 220 }}>
-                Select a conversation from the left to start chatting
-              </p>
-            </div>
-          )}
+          ))}
         </div>
       </div>
-    </>
+
+      {/* ── Main chat area ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+
+        {/* Header */}
+        <div style={{
+          padding: '0.9rem 1.5rem', borderBottom: '1px solid hsl(var(--border, 220 13% 91%))',
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: 'hsl(var(--card, 0 0% 100%))',
+        }}>
+          {currentRoom && <currentRoom.icon size={20} color={currentRoom.color} />}
+          <div>
+            <p style={{ fontWeight: 700, fontSize: '0.95rem' }}> # {currentRoom?.label}</p>
+            <p style={{ fontSize: '0.7rem', color: 'hsl(var(--muted-fg, 220 9% 46%))' }}>NourishHub community channel</p>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'hsl(var(--muted-fg, 220 9% 46%))' }}>
+            <Users size={15} />
+            <span>6 online</span>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => {
+              const isOwn = msg.isOwn;
+              const roleColor = ROLE_COLORS[msg.role] || '#6b7280';
+              return (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  style={{
+                    display: 'flex', flexDirection: isOwn ? 'row-reverse' : 'row',
+                    alignItems: 'flex-end', gap: 10, marginBottom: 8,
+                  }}
+                >
+                  {/* Avatar */}
+                  {!isOwn && (
+                    <div style={{
+                      width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                      background: roleColor + '22', border: `2px solid ${roleColor}44`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.8rem', fontWeight: 700, color: roleColor,
+                    }}>
+                      {(msg.sender || 'U')[0].toUpperCase()}
+                    </div>
+                  )}
+
+                  <div style={{ maxWidth: '68%', display: 'flex', flexDirection: 'column', alignItems: isOwn ? 'flex-end' : 'flex-start' }}>
+                    {!isOwn && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: roleColor }}>{msg.sender}</span>
+                        <span style={{ fontSize: '0.65rem', padding: '1px 6px', borderRadius: 6, background: roleColor + '18', color: roleColor, fontWeight: 600, textTransform: 'capitalize' }}>{msg.role}</span>
+                      </div>
+                    )}
+                    <div style={{
+                      padding: '0.55rem 0.9rem', borderRadius: isOwn ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
+                      background: isOwn
+                        ? 'linear-gradient(135deg, #10b981, #047857)'
+                        : 'hsl(var(--muted, 210 40% 96%))',
+                      color: isOwn ? '#fff' : 'hsl(var(--foreground, 224 71% 4%))',
+                      fontSize: '0.875rem', lineHeight: 1.5, fontWeight: 500,
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                    }}>
+                      {msg.text}
+                    </div>
+                    <span style={{ fontSize: '0.65rem', color: 'hsl(var(--muted-fg, 220 9% 46%))', marginTop: 3 }}>{msg.time}</span>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input bar */}
+        <div style={{
+          padding: '0.9rem 1.5rem', borderTop: '1px solid hsl(var(--border, 220 13% 91%))',
+          display: 'flex', gap: 10, alignItems: 'center',
+          background: 'hsl(var(--card, 0 0% 100%))',
+        }}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && send()}
+            placeholder={`Message #${currentRoom?.label}...`}
+            style={{
+              flex: 1, padding: '0.65rem 1rem', borderRadius: 12, border: '1px solid hsl(var(--border, 220 13% 91%))',
+              fontSize: '0.9rem', outline: 'none', background: 'hsl(var(--background))', color: 'hsl(var(--foreground, 224 71% 4%))',
+              transition: 'border-color 0.2s',
+            }}
+            onFocus={e => e.target.style.borderColor = '#10b981'}
+            onBlur={e => e.target.style.borderColor = 'hsl(var(--border, 220 13% 91%))'}
+          />
+          <button
+            onClick={send}
+            style={{
+              width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: input.trim() ? 'linear-gradient(135deg, #10b981, #047857)' : 'hsl(var(--muted, 210 40% 96%))',
+              color: input.trim() ? '#fff' : 'hsl(var(--muted-fg, 220 9% 46%))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s', flexShrink: 0,
+            }}
+          >
+            <Send size={17} />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

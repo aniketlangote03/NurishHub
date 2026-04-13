@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
   Heart, Menu, X, LogOut, LayoutDashboard, Utensils,
-  ClipboardList, Shield, User as UserIcon, Truck, MessageSquare
+  ClipboardList, Shield, User as UserIcon, Truck, MessageSquare, Map
 } from 'lucide-react';
 
 function Layout({ children }) {
@@ -40,6 +40,7 @@ function Layout({ children }) {
       ...(['ngo','admin'].includes(user?.role) ? [{ href: '/requests', label: 'Requests', Icon: ClipboardList }] : []),
       ...(['volunteer','admin'].includes(user?.role) ? [{ href: '/pickups', label: 'Pickups', Icon: Truck }] : []),
       { href: '/chat', label: 'Chat', Icon: MessageSquare },
+      { href: '/map', label: 'Live Map', Icon: Map },
       ...(user?.role === 'admin' ? [{ href: '/admin', label: 'Admin', Icon: Shield }] : []),
     ] : []),
   ];

@@ -32,7 +32,7 @@ router.get('/nearby', getNearbyDonations);
 router.get('/my', authorize('donor'), getMyDonations);
 
 // CRUD — optional images via multipart (payload + images[])
-router.post('/', authorize('donor'), maybeParseDonationMultipart, donationValidator, createDonation);
+router.post('/', authorize('donor', 'admin'), maybeParseDonationMultipart, donationValidator, createDonation);
 router.get('/', getDonations);
 router.get('/:id', mongoIdParam('id'), getDonationById);
 router.put('/:id', mongoIdParam('id'), authorize('donor', 'admin'), updateDonation);

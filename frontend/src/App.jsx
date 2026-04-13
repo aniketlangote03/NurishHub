@@ -21,6 +21,7 @@ import VolunteerPickup from './pages/VolunteerPickup';
 import AdminPanel from './pages/AdminPanel';
 import Chat from './pages/Chat';
 import Feedback from './pages/Feedback';
+import MapDashboard from './pages/MapDashboard';
 
 function ProtectedRoute({ children, roles }) {
   const { isAuthenticated, user, loading } = useAuth();
@@ -70,6 +71,9 @@ function AppRoutes() {
         } />
         <Route path="/feedback" element={
           <ProtectedRoute><Feedback /></ProtectedRoute>
+        } />
+        <Route path="/map" element={
+          <ProtectedRoute><MapDashboard /></ProtectedRoute>
         } />
 
         {/* Fallback */}

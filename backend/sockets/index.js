@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const registerChatHandlers = require('./chatSocket');
 const registerNotificationHandlers = require('./notificationSocket');
+const registerLocationHandlers = require('./locationSocket');
 const logger = require('../config/logger');
 
 // Shared online users map: userId (string) → socketId
@@ -57,6 +58,7 @@ const initSockets = (io) => {
     // ── Register handlers ─────────────────────────────────────────────────
     registerChatHandlers(socket, io, onlineUsers);
     registerNotificationHandlers(socket, io);
+    registerLocationHandlers(socket, io);
 
     // ── Ping/Pong health ──────────────────────────────────────────────────
     socket.on('ping', () => socket.emit('pong', { ts: Date.now() }));

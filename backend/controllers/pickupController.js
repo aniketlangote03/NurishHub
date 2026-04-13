@@ -154,10 +154,35 @@ const updatePickupStatus = asyncHandler(async (req, res) => {
 
   const updated = await Pickup.findByIdAndUpdate(pickupId, updates, { new: true });
 
+  // Human-readable label map
+  const STATUS_LABELS = {
+    assigned        : '📋 Assigned',
+    accepted        : '✅ Accepted',
+    en_route_pickup : '🚴 En Route to Pickup',
+    picked_up       : '📦 Picked Up',
+    en_route_delivery: '🚚 En Route to NGO',
+    delivered       : '🎉 Delivered',
+    cancelled       : '❌ Cancelled',
+    failed          : '⚠️ Failed',
+  };
+
   // Emit real-time tracking update
   const io = req.app.get('io');
   if (io) {
     io.emit(`pickup:update:${pickupId}`, { status, currentLocation });
+
+    // Broadcast to all dashboards (MapDashboard, AdminPanel, NgoRequest, etc.)
+    io.emit('pickup:status-update', {
+      pickupId,
+      status,
+      label          : STATUS_LABELS[status] || status,
+      volunteerId    : pickup.volunteerId?.toString(),
+      volunteerName  : req.user.name,
+      donationId     : pickup.donationId?.toString(),
+      ngoId          : pickup.ngoId?.toString() || null,
+      currentLocation: currentLocation || null,
+      ts             : Date.now(),
+    });
 
     if (status === 'delivered') {
       const ngoId = pickup.ngoId?._id || pickup.ngoId;
