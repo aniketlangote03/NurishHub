@@ -11,6 +11,15 @@ node_modules
 dist
 dist-ssr
 *.local
+coverage/
+.nyc_output/
+*.lcov
+eslint-report.json
+out.txt
+security_issues.txt
+.eslintcache
+.cache/
+.parcel-cache/
 
 # Secrets & local env (never commit — API URLs, keys, tokens)
 .env
@@ -30,3 +39,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+Thumbs.db
+desktop.ini

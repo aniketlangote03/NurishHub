@@ -2,3 +2,14 @@ node_modules/
 logs/
 .env
 *.log
+coverage/
+.nyc_output/
+*.lcov
+eslint_report.json
+eslint_output.txt
+out.txt
+security_issues.txt
+.vscode/
+.idea/
+*.swp
+*.swo
