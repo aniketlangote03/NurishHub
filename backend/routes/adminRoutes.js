@@ -29,7 +29,7 @@ const { mongoIdParam } = require('../middleware/validate');
 router.use(protect, authorize('admin'));
 
 router.get('/dashboard-summary', getDashboardSummary);
-router.get('/analytics', getAnalytics);
+router.get('/system-metrics', getAnalytics);
 
 router.get('/users', getAllUsers);
 router.get('/users/:id', mongoIdParam('id'), getUserById);

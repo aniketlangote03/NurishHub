@@ -140,8 +140,8 @@ export const usersAPI = {
 
 // ─── ADMIN API ─────────────────────────────────────────────────────────────────
 export const adminAPI = {
-  getDashboardStats: () => api.get('/admin/stats'),
-  getAnalytics: (period) => api.get('/admin/analytics', { params: { period } }),
+  getDashboardStats: () => api.get('/admin/dashboard-summary'),
+  getAnalytics: (period) => api.get('/admin/system-metrics', { params: { period } }),
   getUsers: (params) => api.get('/admin/users', { params }),
   verifyNGO: (id, status) => api.put(`/admin/ngo/${id}/verify`, { status }),
 };
