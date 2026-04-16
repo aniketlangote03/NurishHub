@@ -218,20 +218,25 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <div style={{ display:'flex', flexDirection:'column', gap:'0.25rem' }}>
-                      {myRequests.slice(0, 6).map(r => (
-                        <div key={r.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.875rem 1rem', borderRadius:'1rem', border:'1px solid transparent' }}>
+                      {myRequests.slice(0, 6).map(r => {
+                        const dObj = r.donationId || {};
+                        const title = dObj.foodName || `Donation #${dObj._id || dObj}`;
+                        const qty = dObj.quantity ? `${dObj.quantity.value} ${dObj.quantity.unit}` : '';
+                        
+                        return (
+                        <div key={r._id || r.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.875rem 1rem', borderRadius:'1rem', border:'1px solid transparent' }}>
                           <div style={{ display:'flex', alignItems:'center', gap:'1rem' }}>
                             <div style={{ width:40, height:40, borderRadius:12, background:'#eff6ff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                               <Heart size={18} style={{ color:'#2563eb' }} />
                             </div>
                             <div>
-                              <p style={{ fontWeight:600, marginBottom:'0.125rem' }}>Donation #{r.donationId}</p>
-                              <p style={{ fontSize:'0.8125rem', color:'hsl(var(--muted-fg))' }}>{r.quantity}</p>
+                              <p style={{ fontWeight:600, marginBottom:'0.125rem' }}>{title}</p>
+                              <p style={{ fontSize:'0.8125rem', color:'hsl(var(--muted-fg))' }}>{qty}</p>
                             </div>
                           </div>
                           <span className={`badge ${STATUS_COLORS[r.status] || 'badge-pending'}`}>{r.status}</span>
                         </div>
-                      ))}
+                      );})}
                     </div>
                   )}
                 </div>
