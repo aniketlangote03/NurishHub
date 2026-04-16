@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// The base URL must point to your backend API. E.g., http://localhost:5000/api
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// The base URL must point to your backend API. E.g., https://nurishhub-2.onrender.com/api
+const API_BASE = import.meta.env.VITE_API_URL || 'https://nurishhub-2.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_BASE,
