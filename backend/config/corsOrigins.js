@@ -38,9 +38,8 @@ function createDynamicOrigin() {
 
     if (allowNetlifyWildcard() && NETLIFY_HOST.test(origin)) return callback(null, true);
 
-    if (!isProductionLike()) {
-      if (LOCAL_VITE.test(origin) || LOCAL_127.test(origin)) return callback(null, true);
-    }
+    // ALWAYS allow localhost for easier development against the Render backend
+    if (LOCAL_VITE.test(origin) || LOCAL_127.test(origin)) return callback(null, true);
 
     return callback(null, false);
   };
